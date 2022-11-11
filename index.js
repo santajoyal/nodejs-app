@@ -158,4 +158,4 @@ app.delete("/product/:productId", async (req, res) => {
   }
 });
 
-app.listen(3004);
+app.listen(process.env.PORT || 3004);
