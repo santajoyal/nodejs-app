@@ -8,7 +8,8 @@ const URL = "mongodb+srv://admin:admin123@cluster0.1ytu5ib.mongodb.net/?retryWri
 //dont use @ symbol in password
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    // origin: "http://localhost:3000",
+    origin: "https://spiffy-hotteok-37aa4a.netlify.app",
   })
 );
 
