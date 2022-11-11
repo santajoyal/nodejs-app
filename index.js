@@ -3,8 +3,9 @@ const cors = require("cors");
 const mongodb = require("mongodb");
 const mongoclient = mongodb.MongoClient;
 const app = express();
+const dotenv = require("dotenv").config()
 // const URL = "mongodb://localhost:27017";
-const URL = "mongodb+srv://admin:admin123@cluster0.1ytu5ib.mongodb.net/?retryWrites=true&w=majority";
+const URL = process.env.DB;
 //dont use @ symbol in password
 app.use(
   cors({
