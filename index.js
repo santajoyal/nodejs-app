@@ -22,28 +22,26 @@ app.use(
 
 app.use(express.json());
 
-let authorize = (req,res,next)=>{
-    try {
-      //middleware
-     //check if authorization token present
-     console.log(req.headers);
-     if (req.headers.authorization) {
-       //check if the token is valid
-       let decodedtoken = jwt.verify(req.headers.authorization, jwt_secret);
-       if (decodedtoken) {
-         next();
-       } else {
-         res.status(401).json({ message: "unauthorized" });
-       }
-       //if valid say next()
-       //if not valid say unauthorized
-     }
-    } catch (error) {
-     res.status(401).json({ message: "unauthorized" });
+let authorize = (req, res, next) => {
+  try {
+    //middleware
+    //check if authorization token present
+    console.log(req.headers);
+    if (req.headers.authorization) {
+      //check if the token is valid
+      let decodedtoken = jwt.verify(req.headers.authorization, jwt_secret);
+      if (decodedtoken) {
+        next();
+      } else {
+        res.status(401).json({ message: "unauthorized" });
+      }
+      //if valid say next()
+      //if not valid say unauthorized
     }
-  };
-    
-  
+  } catch (error) {
+    res.status(401).json({ message: "unauthorized" });
+  }
+};
 
 let products = [];
 
@@ -81,7 +79,9 @@ app.post("/user/login", async (req, res) => {
     //select the db
     const db = connection.db("b39wd2");
 
-    const user =await db.collection("users").findOne({ email: req.body.email });
+    const user = await db
+      .collection("users")
+      .findOne({ email: req.body.email });
 
     if (user) {
       const compare = await bcrypt.compare(req.body.password, user.password);
@@ -149,7 +149,7 @@ app.post(
 );
 
 //read
-app.get("/products",authorize, async (req, res) => {
+app.get("/products", authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -172,7 +172,7 @@ app.get("/products",authorize, async (req, res) => {
 });
 
 //URL parameter
-app.put("/product/:productId",authorize, async (req, res) => {
+app.put("/product/:productId", authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -208,7 +208,7 @@ app.put("/product/:productId",authorize, async (req, res) => {
   }
 });
 
-app.get("/product/:productId",authorize, async (req, res) => {
+app.get("/product/:productId", authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -236,7 +236,7 @@ app.get("/product/:productId",authorize, async (req, res) => {
   }
 });
 
-app.delete("/product/:productId",authorize, async (req, res) => {
+app.delete("/product/:productId", authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
