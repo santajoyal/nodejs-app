@@ -3,22 +3,51 @@ const cors = require("cors");
 const mongodb = require("mongodb");
 const mongoclient = mongodb.MongoClient;
 const app = express();
-const dotenv = require("dotenv").config()
+const dotenv = require("dotenv").config();
 // const URL = "mongodb://localhost:27017";
 const URL = process.env.DB;
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const jwt_secret = process.env.jwt_secret;
 //dont use @ symbol in password
+
+//middleware
 app.use(
   cors({
     // origin: "http://localhost:3000",
     origin: "https://spiffy-hotteok-37aa4a.netlify.app",
+    // origin: "*",
   })
 );
 
 app.use(express.json());
+
+let authorize = (req,res,next)=>{
+    try {
+      //middleware
+     //check if authorization token present
+     console.log(req.headers);
+     if (req.headers.authorization) {
+       //check if the token is valid
+       let decodedtoken = jwt.verify(req.headers.authorization, jwt_secret);
+       if (decodedtoken) {
+         next();
+       } else {
+         res.status(401).json({ message: "unauthorized" });
+       }
+       //if valid say next()
+       //if not valid say unauthorized
+     }
+    } catch (error) {
+     res.status(401).json({ message: "unauthorized" });
+    }
+  };
+    
+  
+
 let products = [];
 
-//create
-app.post("/product", async (req, res) => {
+app.post("/user/register", async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -26,22 +55,101 @@ app.post("/product", async (req, res) => {
     //select the db
     const db = connection.db("b39wd2");
 
+    //hash the password
+    var salt = await bcrypt.genSalt(10);
+    var hash = await bcrypt.hash(req.body.password, salt);
+    req.body.password = hash;
     //select the collection
     //do operation (CRUD)
-    const product = await db.collection("products").insertOne(req.body);
+    const user = await db.collection("users").insertOne(req.body);
 
     //close the connection
     await connection.close();
 
-    res.json({ meassage: "product created", id: product.insertedId });
+    res.json({ meassage: "product created" });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ meassage: "something went wrong" });
+    res.status(500).json({ message: "something went wrong" });
   }
 });
 
+app.post("/user/login", async (req, res) => {
+  try {
+    //connect the database
+    const connection = await mongoclient.connect(URL);
+
+    //select the db
+    const db = connection.db("b39wd2");
+
+    const user = db.collection("users").findOne({ email: req.body.email });
+
+    if (user) {
+      const compare = await bcrypt.compare(req.body.password, user.password);
+      if (compare) {
+        //issue token
+        const token = jwt.sign({ _id: user._id }, jwt_secret, {
+          expiresIn: "2m",
+        });
+        res.json({ message: "sucess", token });
+      } else {
+        res.json({ message: "incorrect username/password" });
+      }
+    } else {
+      res.status(404).json({ message: "incorrect username/password" });
+    }
+  } catch (error) {}
+});
+
+//create
+app.post(
+  "/product",
+  // (req, res, next) => {
+  //  try {
+  //    //middleware
+  //   //check if authorization token present
+  //   console.log(req.headers);
+  //   if (req.headers.authorization) {
+  //     //check if the token is valid
+  //     let decodedtoken = jwt.verify(req.headers.authorization, jwt_secret);
+  //     if (decodedtoken) {
+  //       next();
+  //     } else {
+  //       res.status(401).json({ message: "unauthorized" });
+  //     }
+  //     //if valid say next()
+  //     //if not valid say unauthorized
+  //   }
+  //  } catch (error) {
+  //   res.status(401).json({ message: "unauthorized" });
+  //  }
+  //   res.status(401).json({ message: "unauthorized" });
+  // },
+  authorize,
+  async (req, res) => {
+    try {
+      //connect the database
+      const connection = await mongoclient.connect(URL);
+
+      //select the db
+      const db = connection.db("b39wd2");
+
+      //select the collection
+      //do operation (CRUD)
+      const product = await db.collection("products").insertOne(req.body);
+
+      //close the connection
+      await connection.close();
+
+      res.json({ meassage: "product created", id: product.insertedId });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ meassage: "something went wrong" });
+    }
+  }
+);
+
 //read
-app.get("/products", async (req, res) => {
+app.get("/products",authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -64,7 +172,7 @@ app.get("/products", async (req, res) => {
 });
 
 //URL parameter
-app.put("/product/:productId", async (req, res) => {
+app.put("/product/:productId",authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -79,12 +187,12 @@ app.put("/product/:productId", async (req, res) => {
     if (productdata) {
       //select the collection
       //do operation(CRUD)
-        delete req.body._id
+      delete req.body._id;
       const product = await db
         .collection("products")
         .updateOne(
           { _id: mongodb.ObjectId(req.params.productId) },
-          {$set:req.body}
+          { $set: req.body }
         );
 
       //close the connection
@@ -100,7 +208,7 @@ app.put("/product/:productId", async (req, res) => {
   }
 });
 
-app.get("/product/:productId", async (req, res) => {
+app.get("/product/:productId",authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
@@ -117,7 +225,6 @@ app.get("/product/:productId", async (req, res) => {
     //close the connection
     await connection.close();
 
-    res.json(product);
     if (product) {
       res.json(product);
     } else {
@@ -129,7 +236,7 @@ app.get("/product/:productId", async (req, res) => {
   }
 });
 
-app.delete("/product/:productId", async (req, res) => {
+app.delete("/product/:productId",authorize, async (req, res) => {
   try {
     //connect the database
     const connection = await mongoclient.connect(URL);
