@@ -66,7 +66,7 @@ app.post("/user/register", async (req, res) => {
     //close the connection
     await connection.close();
 
-    res.json({ meassage: "product created" });
+    res.json({ meassage: "user created" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "something went wrong" });
