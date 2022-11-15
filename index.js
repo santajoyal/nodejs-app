@@ -81,7 +81,7 @@ app.post("/user/login", async (req, res) => {
     //select the db
     const db = connection.db("b39wd2");
 
-    const user = db.collection("users").findOne({ email: req.body.email });
+    const user =await db.collection("users").findOne({ email: req.body.email });
 
     if (user) {
       const compare = await bcrypt.compare(req.body.password, user.password);
